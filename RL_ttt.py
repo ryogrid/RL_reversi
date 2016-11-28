@@ -56,7 +56,7 @@ class TTTBoard:
         self.check_draw()
     
     def clone(self):
-        return TTTBoard(self.board.copy())
+        return TTTBoard(list(self.board))
     
     def switch_player(self):
         if self.player_turn == self.player_x:
