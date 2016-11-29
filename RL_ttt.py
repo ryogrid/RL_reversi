@@ -308,6 +308,7 @@ class PlayerQL:
             maxQnew=0
         else:
             maxQnew=max([self.getQ(tuple(fs.board),act) for act in fs.get_possible_pos()])
+#            print("maxQnew:" + str(maxQnew))
         self.q[(tuple(s.board),a)]=pQ+self.alpha*((r+self.gamma*maxQnew)-pQ)
         #print (str(s.board)+"with "+str(a)+" is updated from "+str(pQ)+" refs MAXQ="+str(maxQnew)+":"+str(r))
         #print(self.q)
