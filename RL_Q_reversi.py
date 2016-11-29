@@ -289,7 +289,7 @@ class PlayerQL:
 
 pQ=PlayerQL(PLAYER_O,"QL1")
 p2=PlayerRandom(PLAYER_X)
-game=TTT_GameOrganizer(pQ,p2,100000,False,False,100)
+game=TTT_GameOrganizer(pQ,p2,10000000,False,False,100)
 game.progress()
 
 # pQ=PlayerHuman(PLAYER_X)
