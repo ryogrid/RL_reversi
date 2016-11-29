@@ -43,15 +43,16 @@ class TTTBoard:
             self.winner = -1 # player2
 
     def conv_pos_xy_to_num(self,x, y):
-        return (x-1)*4 + y;
+        return y*4 + x;
         
     def conv_pos_num_to_xy(self,num):
-        return  int((num + 3) / 4) , num % 4
+        return  num % 4, int(num / 4)
         
     
     def check_hasami(self,check_pos, player, xv, yv):
         cur_x, cur_y = self.conv_pos_num_to_xy(check_pos)
-        if cur_x < 1 or cur_x > 4 or cur_y < 1 or cur_y > 4:
+        print("cur_pos:" + str(check_pos) + " x,y:" + str(cur_x) + "," + str(cur_y))
+        if cur_x < 0 or cur_x > 3 or cur_y < 0 or cur_y > 3:
             return False
 
         if self.board[check_pos] == EMPTY:
@@ -60,7 +61,6 @@ class TTTBoard:
         if self.board[check_pos] == player:
             return True
 
-        cur_x, cur_y = self.conv_pos_num_to_xy(check_pos)
         check_x = cur_x + xv
         check_y = cur_y + yv
         ret = self.check_hasami(self.conv_pos_xy_to_num(check_x, check_y), player, xv, yv) 
