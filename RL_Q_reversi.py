@@ -30,17 +30,17 @@ class TTTBoard:
         hr = '\n----------------\n'
         print((row + hr + row + hr + row + hr + row).format(*tempboard))
                
-    def check_winner(self):
+    def check_winner(self, player):
         p1_cnt=0
         for place in self.board:
-            if place == 1:
+            if place == player:
                 p1_cnt+=1
         if p1_cnt > 8:
-            self.winner = 1 # player1
+            self.winner = player # player1
         elif p1_cnt == 8:
             self.winner = DRAW
         else:
-            self.winner = -1 # player2
+            self.winner = -1*player # player2
 
     def conv_pos_xy_to_num(self,x, y):
         return y*4 + x;
@@ -51,7 +51,7 @@ class TTTBoard:
     
     def check_hasami(self,check_pos, player, xv, yv):
         cur_x, cur_y = self.conv_pos_num_to_xy(check_pos)
-        print("cur_pos:" + str(check_pos) + " x,y:" + str(cur_x) + "," + str(cur_y))
+#        print("cur_pos:" + str(check_pos) + " x,y:" + str(cur_x) + "," + str(cur_y))
         if cur_x < 0 or cur_x > 3 or cur_y < 0 or cur_y > 3:
             return False
 
@@ -101,7 +101,7 @@ class TTTBoard:
             print("wrong placement! " + str(pos))
             self.winner=-1*player
         if(len(self.get_possible_pos())==0):
-            self.check_winner()
+            self.check_winner(player)
     
     def clone(self):
         return TTTBoard(list(self.board))
@@ -138,18 +138,23 @@ class TTT_GameOrganizer:
                 act=self.player_turn.act(self.board)
                 self.board.move(act,self.player_turn.myturn)
                 if self.disp:self.board.print_board()
-               
+
+                
                 if self.board.winner != None:
                     # notice every player that game ends
                     for i in self.players:
-                        i.getGameResult(self.board) 
+                        i.getGameResult(self.board)
+#                    print("myturn:" + str(self.player_turn.myturn) + " self.board.winner:" + str(self.board.winner))
                     if self.board.winner == DRAW:
                         if self.showResult:print ("Draw Game")
-                    elif self.board.winner == self.player_turn.myturn:
-                        out = "Winner : " + self.player_turn.name
-                        if self.showResult: print(out)
                     else:
-                        print ("Invalid Move!")
+                        if self.showResult: print("Winner " + str(self.board.winner))
+                    # elif self.board.winner == self.player_turn.myturn:
+                    #     out = "Winner : " + self.player_turn.name
+                    #     if self.showResult: print(out)
+                    # else:
+                    #     print(self.board.winner)
+                    #     print ("Invalid Move!")
                     self.nwon[self.board.winner]+=1
                 else:
                     self.switch_player()
@@ -282,12 +287,12 @@ class PlayerQL:
     def act(self,board):
         return self.policy(board)
 
-# pQ=PlayerQL(PLAYER_O,"QL1")
-# p2=PlayerQL(PLAYER_X,"QL2")
-# game=TTT_GameOrganizer(pQ,p2,100000,False,False,10000)
-# game.progress()
-
-pQ=PlayerHuman(PLAYER_X)
-p2=PlayerRandom(PLAYER_O)
-game=TTT_GameOrganizer(pQ,p2)
+pQ=PlayerQL(PLAYER_O,"QL1")
+p2=PlayerRandom(PLAYER_X)
+game=TTT_GameOrganizer(pQ,p2,100000,False,False,100)
 game.progress()
+
+# pQ=PlayerHuman(PLAYER_X)
+# p2=PlayerRandom(PLAYER_O)
+# game=TTT_GameOrganizer(pQ,p2)
+# game.progress()
