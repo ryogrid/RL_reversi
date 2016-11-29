@@ -32,15 +32,15 @@ class TTTBoard:
                
     def check_winner(self):
         p1_cnt=0
-        for place in board:
+        for place in self.board:
             if place == 1:
                 p1_cnt+=1
-            if p1_cnt > 8:
-                self.winner = 1 # player1
-            elif p1_cnt == 8:
-                self.winner = DRAW
-            else:
-                self.winner = -1 # player2
+        if p1_cnt > 8:
+            self.winner = 1 # player1
+        elif p1_cnt == 8:
+            self.winner = DRAW
+        else:
+            self.winner = -1 # player2
 
     def conv_pos_xy_to_num(self,x, y):
         return (x-1)*4 + y;
@@ -98,9 +98,9 @@ class TTTBoard:
             yv = 1
             self.check_hasami(self.conv_pos_xy_to_num(cur_x+xv, cur_y+yv), player, xv, yv)                        
         else:
-            printf("wrong placement! " + str(pos))
+            print("wrong placement! " + str(pos))
             self.winner=-1*player
-        if(self.get_possible_pos()==0):
+        if(len(self.get_possible_pos())==0):
             self.check_winner()
     
     def clone(self):
@@ -287,7 +287,7 @@ class PlayerQL:
 # game=TTT_GameOrganizer(pQ,p2,100000,False,False,10000)
 # game.progress()
 
-pQ=PlayerRandom(PLAYER_O)
-p2=PlayerHuman(PLAYER_X)
+pQ=PlayerHuman(PLAYER_X)
+p2=PlayerRandom(PLAYER_O)
 game=TTT_GameOrganizer(pQ,p2)
 game.progress()
