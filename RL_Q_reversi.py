@@ -46,11 +46,7 @@ class TTTBoard:
         return y*4 + x;
         
     def conv_pos_num_to_xy(self,num):
-        x = num % 4 - 1
-        if x == -1:
-            x = 3
-            
-        return  x, int(num / 4)
+        return  num % 4, int(num / 4)
         
     
     def check_hasami(self,check_pos, player, xv, yv):
@@ -67,6 +63,9 @@ class TTTBoard:
 
         check_x = cur_x + xv
         check_y = cur_y + yv
+        if check_x < 0 or check_x > 3 or check_y < 0 or check_y > 3:
+            return False
+        
         ret = self.check_hasami(self.conv_pos_xy_to_num(check_x, check_y), player, xv, yv) 
         if ret == True:
             self.board[check_pos] = player;
