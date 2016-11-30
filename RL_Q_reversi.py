@@ -55,7 +55,7 @@ class TTTBoard:
     
     def check_hasami(self,check_pos, player, xv, yv):
         cur_x, cur_y = self.conv_pos_num_to_xy(check_pos)
-        print("check_hasami cur_pos:" + str(check_pos) + " x,y:" + str(cur_x) + "," + str(cur_y))
+#        print("check_hasami cur_pos:" + str(check_pos) + " x,y:" + str(cur_x) + "," + str(cur_y))
         if cur_x < 0 or cur_x > 3 or cur_y < 0 or cur_y > 3:
             return False
 
