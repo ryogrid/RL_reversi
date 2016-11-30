@@ -46,12 +46,16 @@ class TTTBoard:
         return y*4 + x;
         
     def conv_pos_num_to_xy(self,num):
-        return  num % 4, int(num / 4)
+        x = num % 4 - 1
+        if x == -1:
+            x = 3
+            
+        return  x, int(num / 4)
         
     
     def check_hasami(self,check_pos, player, xv, yv):
         cur_x, cur_y = self.conv_pos_num_to_xy(check_pos)
-#        print("cur_pos:" + str(check_pos) + " x,y:" + str(cur_x) + "," + str(cur_y))
+        print("check_hasami cur_pos:" + str(check_pos) + " x,y:" + str(cur_x) + "," + str(cur_y))
         if cur_x < 0 or cur_x > 3 or cur_y < 0 or cur_y > 3:
             return False
 
@@ -413,29 +417,34 @@ class DQNPlayer:
         self.optimizer.update()
         
 
-pQ=DQNPlayer(PLAYER_O,"QL1")
-p2=PlayerRandom(PLAYER_X)
-game=TTT_GameOrganizer(pQ,p2,2200000,False,False,10)
-game.progress()
+# # pQ=DQNPlayer(PLAYER_O,"QL1")
+# # p2=PlayerRandom(PLAYER_X)
+# # game=TTT_GameOrganizer(pQ,p2,500000,False,False,10)
+# # game.progress()
 
 # pQ=PlayerQL(PLAYER_O,"QL1")
 # p2=PlayerRandom(PLAYER_X)
-# game=TTT_GameOrganizer(pQ,p2,2200000,False,False,1000)
+# game=TTT_GameOrganizer(pQ,p2,100000,False,False,1000)
 # game.progress()
 
-import pickle
-with open("./QL_player.pickle","wb") as f:
-    pickle.dump(pQ, f)
+# # import pickle
+# # with open("./QL_player.pickle","wb") as f:
+# #     pickle.dump(pQ, f)
 
-# with open('./QL_player.pickle', 'rb') as f:
-#     pQ = pickle.load(f)
+# # import pickle
+# # with open('./QL_player.pickle', 'rb') as f:
+# #     pQ = pickle.load(f)
 # pQ.e=0
 # p2=PlayerRandom(PLAYER_X)
 # game=TTT_GameOrganizer(pQ,p2,1000,False,False,10)
 # game.progress()
-    
 
-# pQ=PlayerHuman(PLAYER_X)
-# p2=PlayerRandom(PLAYER_O)
-# game=TTT_GameOrganizer(pQ,p2)
+
+# p2=PlayerHuman(PLAYER_X)
+# game=TTT_GameOrganizer(pQ,p2,20)
 # game.progress()
+
+pQ=PlayerHuman(PLAYER_X)
+p2=PlayerRandom(PLAYER_O)
+game=TTT_GameOrganizer(pQ,p2)
+game.progress()
