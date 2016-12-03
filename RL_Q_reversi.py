@@ -10,14 +10,14 @@ class TTTBoard:
     def __init__(self,board=None):
         if board==None:
             self.board = []
-            for i in range(16):self.board.append(EMPTY)
+            for i in range(64):self.board.append(EMPTY)
         else:
             self.board=board
         self.winner=None
     
     def get_possible_pos(self):
         pos=[]
-        for i in range(16):
+        for i in range(64):
             if self.board[i]==EMPTY:
                 pos.append(i)
         return pos
@@ -26,33 +26,33 @@ class TTTBoard:
         tempboard=[]
         for i in self.board:
             tempboard.append(MARKS[i])
-        row = ' {} | {} | {} | {} '
+        row = ' {} | {} | {} | {} | {} | {} | {} | {} '
         hr = '\n----------------\n'
-        print((row + hr + row + hr + row + hr + row).format(*tempboard))
+        print((row + hr + row + hr + row + hr + row  + hr + row + hr + row + hr + row + hr + row).format(*tempboard))
                
     def check_winner(self, player):
         p1_cnt=0
         for place in self.board:
             if place == player:
                 p1_cnt+=1
-        if p1_cnt > 8:
+        if p1_cnt > 32:
             self.winner = player # player1
-        elif p1_cnt == 8:
+        elif p1_cnt == 32:
             self.winner = DRAW
         else:
             self.winner = -1*player # player2
 
     def conv_pos_xy_to_num(self,x, y):
-        return y*4 + x;
+        return y*8 + x;
         
     def conv_pos_num_to_xy(self,num):
-        return  num % 4, int(num / 4)
+        return  num % 8, int(num / 8)
         
     
     def check_hasami(self,check_pos, player, xv, yv):
         cur_x, cur_y = self.conv_pos_num_to_xy(check_pos)
 #        print("check_hasami cur_pos:" + str(check_pos) + " x,y:" + str(cur_x) + "," + str(cur_y))
-        if cur_x < 0 or cur_x > 3 or cur_y < 0 or cur_y > 3:
+        if cur_x < 0 or cur_x > 7 or cur_y < 0 or cur_y > 7:
             return False
 
         if self.board[check_pos] == EMPTY:
@@ -63,7 +63,7 @@ class TTTBoard:
 
         check_x = cur_x + xv
         check_y = cur_y + yv
-        if check_x < 0 or check_x > 3 or check_y < 0 or check_y > 3:
+        if check_x < 0 or check_x > 7 or check_y < 0 or check_y > 7:
             return False
         
         ret = self.check_hasami(self.conv_pos_xy_to_num(check_x, check_y), player, xv, yv) 
@@ -203,10 +203,10 @@ class PlayerHuman:
         valid = False
         while not valid:
             try:
-                act = input("Where would you like to place " + str(self.myturn) + " (1-16)? ")
+                act = input("Where would you like to place " + str(self.myturn) + " (1-32)? ")
                 act = int(act)
                 #if act >= 1 and act <= 9 and board.board[act-1]==EMPTY:
-                if act >= 1 and act <= 16:
+                if act >= 1 and act <= 64:
                     valid=True
                     return act-1
                 else:
@@ -331,7 +331,7 @@ class DQNPlayer:
     def __init__(self, turn,name="DQN",e=1,dispPred=False):
         self.name=name
         self.myturn=turn
-        self.model = MLP(16, 162,16)
+        self.model = MLP(64, 256, 64)
         self.optimizer = optimizers.SGD()
         self.optimizer.setup(self.model)
         self.e=e
@@ -369,7 +369,7 @@ class DQNPlayer:
             act=np.argmax(pred.data,axis=1)
             i+=1
             if i>10:
-                print("Exceed Pos Find"+str(board.board)+" with "+str(act))
+#                print("Exceed Pos Find"+str(board.board)+" with "+str(act))
                 acts=self.last_board.get_possible_pos()
                 act=acts[random.randrange(len(acts))]
             
@@ -416,34 +416,34 @@ class DQNPlayer:
         self.optimizer.update()
         
 
-# # pQ=DQNPlayer(PLAYER_O,"QL1")
-# # p2=PlayerRandom(PLAYER_X)
-# # game=TTT_GameOrganizer(pQ,p2,500000,False,False,10)
-# # game.progress()
+pQ=DQNPlayer(PLAYER_O,"QL1")
+p2=PlayerRandom(PLAYER_X)
+game=TTT_GameOrganizer(pQ,p2,250000,False,False,10)
+game.progress()
 
 # pQ=PlayerQL(PLAYER_O,"QL1")
 # p2=PlayerRandom(PLAYER_X)
-# game=TTT_GameOrganizer(pQ,p2,100000,False,False,1000)
+# game=TTT_GameOrganizer(pQ,p2,200000,False,False,1000)
 # game.progress()
 
-# # import pickle
-# # with open("./QL_player.pickle","wb") as f:
-# #     pickle.dump(pQ, f)
+# import pickle
+# with open("./QL_player.pickle","wb") as f:
+#     pickle.dump(pQ, f)
 
-# # import pickle
-# # with open('./QL_player.pickle', 'rb') as f:
-# #     pQ = pickle.load(f)
-# pQ.e=0
-# p2=PlayerRandom(PLAYER_X)
-# game=TTT_GameOrganizer(pQ,p2,1000,False,False,10)
-# game.progress()
-
-
-# p2=PlayerHuman(PLAYER_X)
-# game=TTT_GameOrganizer(pQ,p2,20)
-# game.progress()
-
-pQ=PlayerHuman(PLAYER_X)
-p2=PlayerRandom(PLAYER_O)
-game=TTT_GameOrganizer(pQ,p2)
+# import pickle
+# with open('./QL_player.pickle', 'rb') as f:
+#     pQ = pickle.load(f)
+pQ.e=0
+p2=PlayerRandom(PLAYER_X)
+game=TTT_GameOrganizer(pQ,p2,2000,False,False,100)
 game.progress()
+
+
+p2=PlayerHuman(PLAYER_X)
+game=TTT_GameOrganizer(pQ,p2,20)
+game.progress()
+
+# pQ=PlayerHuman(PLAYER_X)
+# p2=PlayerRandom(PLAYER_O)
+# game=TTT_GameOrganizer(pQ,p2)
+# game.progress()
