@@ -299,8 +299,8 @@ class MLP():
 
     def __init__(self, n_in, n_units, n_out):
         self.sess = tf.Session()
-        x = tf.placeholder("float", [None, n_in])
-        y_ = tf.placeholder("float", [None, n_units])
+        self.x = tf.placeholder("float", [None, n_in])
+        self.y_ = tf.placeholder("float", [None, n_out])
 
         weights1 = tf.Variable(tf.truncated_normal([n_in, n_units], stddev=0.0001))
         biases1 = tf.Variable(tf.ones([n_units]))
@@ -312,23 +312,23 @@ class MLP():
         biases3 = tf.Variable(tf.ones([n_out]))
 
         # This time we introduce a single hidden layer into our model...
-        hidden_layer_1 = tf.nn.relu(tf.matmul(x, weights1) + biases1)
+        hidden_layer_1 = tf.nn.relu(tf.matmul(self.x, weights1) + biases1)
         hidden_layer_2 = tf.nn.relu(tf.matmul(hidden_layer_1, weights2) + biases2)
         self.model = tf.nn.softmax(tf.matmul(hidden_layer_2, weights3) + biases3)
 
-        cost = -tf.reduce_sum(y_*tf.log(model))
+        cost = -tf.reduce_sum(self.y_*tf.log(self.model))
 
-        self.training_step = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(cost)
+        self.training_step = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(cost)
 
         init = tf.initialize_all_variables()
         
-        sess.run(init)
+        self.sess.run(init)
 
     def pred(self, x):
-        return sess.run(self.model,feed_dict(x: [x]))
+        return self.sess.run(self.model,feed_dict = {self.x: [x]})
 
-    def learn(x, y):
-        self.sess.run(self.training_step, feed_dict={x: [x], y_: [y]})
+    def learn(self, x, y):
+        self.sess.run(self.training_step, feed_dict={self.x: [x], self.y_: [y]})
 
     
 
@@ -354,7 +354,7 @@ class DQNPlayer:
         
         pred=self.model.pred(x)
         if self.dispPred:print(pred)
-        self.last_pred=pred
+        self.last_pred=pred[0]
         act=np.argmax(pred)
         if self.e > 0.2: #decrement epsilon over time
             self.e -= 1/(20000)
@@ -366,10 +366,10 @@ class DQNPlayer:
         while board.board[act]!=EMPTY:
             #print("Wrong Act "+str(board.board)+" with "+str(act))
             self.learn(self.last_board,act, -1, self.last_board)
-            x=np.array([board.board],dtype=np.float32).astype(np.float32)
+            x=board.board
             pred=self.model.pred(x)
             #print(pred.data)
-            act=np.argmax(pred.data,axis=1)
+            act=np.argmax(pred)
             i+=1
             if i>10:
 #                print("Exceed Pos Find"+str(board.board)+" with "+str(act))
@@ -409,6 +409,7 @@ class DQNPlayer:
             
         update=r+self.gamma*maxQnew
 
+#        print(self.last_pred)
         self.last_pred[a]=update
         
         x=s.board
@@ -418,7 +419,7 @@ class DQNPlayer:
 
 pQ=DQNPlayer(PLAYER_O,"QL1")
 p2=PlayerRandom(PLAYER_X)
-game=TTT_GameOrganizer(pQ,p2,250000,False,False,10)
+game=TTT_GameOrganizer(pQ,p2,10000,False,False,100)
 game.progress()
 
 # pQ=PlayerQL(PLAYER_O,"QL1")
@@ -435,7 +436,7 @@ game.progress()
 #     pQ = pickle.load(f)
 pQ.e=0
 p2=PlayerRandom(PLAYER_X)
-game=TTT_GameOrganizer(pQ,p2,2000,False,False,100)
+game=TTT_GameOrganizer(pQ,p2,1000,False,False,100)
 game.progress()
 
 
