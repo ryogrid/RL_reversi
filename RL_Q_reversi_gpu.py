@@ -291,49 +291,52 @@ class PlayerQL:
         return self.policy(board)
 
 
-
-import chainer
-
-from chainer import Function, gradient_check, Variable, optimizers, serializers, utils
-import chainer.functions as F
-import chainer.links as L
-import cupy as np
-from chainer import computational_graph as c
+import tensorflow as tf
+import numpy as np
 
 # Network definition
-class MLP(chainer.Chain):
+class MLP():
 
     def __init__(self, n_in, n_units, n_out):
-        super(MLP, self).__init__(
-            l1=L.Linear(n_in, n_units),  # first layer
-            l2=L.Linear(n_units, n_units),  # second layer
-            l3=L.Linear(n_units, n_units),  # Third layer
-            l4=L.Linear(n_units, n_out),  # output layer
-        )
+        self.sess = tf.Session()
+        x = tf.placeholder("float", [None, n_in])
+        y_ = tf.placeholder("float", [None, n_units])
 
-    def __call__(self, x, t=None, train=False):
-        h = F.leaky_relu(self.l1(x))
-        h = F.leaky_relu(self.l2(h))
-        h = F.leaky_relu(self.l3(h))
-        h = self.l4(h)
+        weights1 = tf.Variable(tf.truncated_normal([n_in, n_units], stddev=0.0001))
+        biases1 = tf.Variable(tf.ones([n_units]))
 
-        if train:
-            return F.mean_squared_error(h,t)
-        else:
-            return h
+        weights2 = tf.Variable(tf.truncated_normal([n_units, n_units], stddev=0.0001))
+        biases2 = tf.Variable(tf.ones([n_units]))
 
-    def get(self,x):
-        # input x as float, output float
-        return self.predict(Variable(np.array([x]).astype(np.float32).reshape(1,1))).data[0][0]
+        weights3 = tf.Variable(tf.truncated_normal([n_units, n_out], stddev=0.0001))
+        biases3 = tf.Variable(tf.ones([n_out]))
 
+        # This time we introduce a single hidden layer into our model...
+        hidden_layer_1 = tf.nn.relu(tf.matmul(x, weights1) + biases1)
+        hidden_layer_2 = tf.nn.relu(tf.matmul(hidden_layer_1, weights2) + biases2)
+        self.model = tf.nn.softmax(tf.matmul(hidden_layer_2, weights3) + biases3)
+
+        cost = -tf.reduce_sum(y_*tf.log(model))
+
+        self.training_step = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(cost)
+
+        init = tf.initialize_all_variables()
+        
+        sess.run(init)
+
+    def pred(self, x):
+        return sess.run(self.model,feed_dict(x: [x]))
+
+    def learn(x, y):
+        self.sess.run(self.training_step, feed_dict={x: [x], y_: [y]})
+
+    
 
 class DQNPlayer:
     def __init__(self, turn,name="DQN",e=1,dispPred=False):
         self.name=name
         self.myturn=turn
-        self.model = MLP(64, 256, 64).to_gpu()
-        self.optimizer = optimizers.SGD()
-        self.optimizer.setup(self.model)
+        self.model = MLP(64, 256, 64)
         self.e=e
         self.gamma=0.95
         self.dispPred=dispPred
@@ -347,12 +350,12 @@ class DQNPlayer:
     def act(self,board):
         
         self.last_board=board.clone()
-        x=np.array([board.board],dtype=np.float32).astype(np.float32)
+        x = board.board
         
-        pred=self.model(x)
-        if self.dispPred:print(pred.data)
-        self.last_pred=pred.data[0,:]
-        act=np.argmax(pred.data,axis=1)
+        pred=self.model.pred(x)
+        if self.dispPred:print(pred)
+        self.last_pred=pred
+        act=np.argmax(pred)
         if self.e > 0.2: #decrement epsilon over time
             self.e -= 1/(20000)
         if random.random() < self.e:
@@ -364,7 +367,7 @@ class DQNPlayer:
             #print("Wrong Act "+str(board.board)+" with "+str(act))
             self.learn(self.last_board,act, -1, self.last_board)
             x=np.array([board.board],dtype=np.float32).astype(np.float32)
-            pred=self.model(x)
+            pred=self.model.pred(x)
             #print(pred.data)
             act=np.argmax(pred.data,axis=1)
             i+=1
@@ -401,19 +404,16 @@ class DQNPlayer:
         if fs.winner is not None:
             maxQnew=0
         else:
-            x=np.array([fs.board],dtype=np.float32).astype(np.float32)
-            maxQnew=np.max(self.model(x).data[0])
+            x= fs.board
+            maxQnew=np.max(self.model.pred(x)[0])
+            
         update=r+self.gamma*maxQnew
-        #print(('Prev Board:{} ,ACT:{}, Next Board:{}, Get Reward {}, Update {}').format(s.board,a,fs.board,r,update))
-        #print(('PREV:{}').format(self.last_pred))
+
         self.last_pred[a]=update
         
-        x=np.array([s.board],dtype=np.float32).astype(np.float32)
-        t=np.array([self.last_pred],dtype=np.float32).astype(np.float32)
-        self.model.zerograds()
-        loss=self.model(x,t,train=True)
-        loss.backward()
-        self.optimizer.update()
+        x=s.board
+        y=self.last_pred
+        self.model.learn(x,y)
         
 
 pQ=DQNPlayer(PLAYER_O,"QL1")
