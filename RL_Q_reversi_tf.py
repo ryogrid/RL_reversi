@@ -291,49 +291,56 @@ class PlayerQL:
         return self.policy(board)
 
 
-
-import chainer
-
-from chainer import Function, gradient_check, Variable, optimizers, serializers, utils
-import chainer.functions as F
-import chainer.links as L
+import tensorflow as tf
 import numpy as np
-from chainer import computational_graph as c
 
 # Network definition
-class MLP(chainer.Chain):
+class MLP():
 
     def __init__(self, n_in, n_units, n_out):
-        super(MLP, self).__init__(
-            l1=L.Linear(n_in, n_units),  # first layer
-            l2=L.Linear(n_units, n_units),  # second layer
-            l3=L.Linear(n_units, n_units),  # Third layer
-            l4=L.Linear(n_units, n_out),  # output layer
-        )
+#        self.sess = tf.Session("/gpu:0")
+        with tf.device("/cpu:0"):
+            self.sess = tf.Session()
+            self.x = tf.placeholder("float", [None, n_in])
+            self.y_ = tf.placeholder("float", [None, n_out])
+            
+            weights1 = tf.Variable(tf.truncated_normal([n_in, n_units], stddev=0.0001))
+            biases1 = tf.Variable(tf.ones([n_units]))
+            
+            weights2 = tf.Variable(tf.truncated_normal([n_units, n_units], stddev=0.0001))
+            biases2 = tf.Variable(tf.ones([n_units]))
+            
+            weights3 = tf.Variable(tf.truncated_normal([n_units, n_out], stddev=0.0001))
+            biases3 = tf.Variable(tf.ones([n_out]))
+            
+            # This time we introduce a single hidden layer into our model...
+            hidden_layer_1 = tf.nn.relu(tf.matmul(self.x, weights1) + biases1)
+            hidden_layer_2 = tf.nn.relu(tf.matmul(hidden_layer_1, weights2) + biases2)
+            self.model = tf.nn.softmax(tf.matmul(hidden_layer_2, weights3) + biases3)
+            
+            cost = -tf.reduce_sum(self.y_*tf.log(self.model))
+            
+            self.training_step = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(cost)
+            
+            init = tf.initialize_all_variables()
+            
+            self.sess.run(init)
 
-    def __call__(self, x, t=None, train=False):
-        h = F.leaky_relu(self.l1(x))
-        h = F.leaky_relu(self.l2(h))
-        h = F.leaky_relu(self.l3(h))
-        h = self.l4(h)
+    def pred(self, x):
+        with tf.device("/cpu:0"):
+            return self.sess.run(self.model,feed_dict = {self.x: [x]})
 
-        if train:
-            return F.mean_squared_error(h,t)
-        else:
-            return h
+    def learn(self, x, y):
+        with tf.device("/cpu:0"):
+            self.sess.run(self.training_step, feed_dict={self.x: [x], self.y_: [y]})
 
-    def get(self,x):
-        # input x as float, output float
-        return self.predict(Variable(np.array([x]).astype(np.float32).reshape(1,1))).data[0][0]
-
+    
 
 class DQNPlayer:
     def __init__(self, turn,name="DQN",e=1,dispPred=False):
         self.name=name
         self.myturn=turn
         self.model = MLP(64, 256, 64)
-        self.optimizer = optimizers.SGD()
-        self.optimizer.setup(self.model)
         self.e=e
         self.gamma=0.95
         self.dispPred=dispPred
@@ -347,12 +354,12 @@ class DQNPlayer:
     def act(self,board):
         
         self.last_board=board.clone()
-        x=np.array([board.board],dtype=np.float32).astype(np.float32)
+        x = board.board
         
-        pred=self.model(x)
-        if self.dispPred:print(pred.data)
-        self.last_pred=pred.data[0,:]
-        act=np.argmax(pred.data,axis=1)
+        pred=self.model.pred(x)
+        if self.dispPred:print(pred)
+        self.last_pred=pred[0]
+        act=np.argmax(pred)
         if self.e > 0.2: #decrement epsilon over time
             self.e -= 1/(20000)
         if random.random() < self.e:
@@ -363,10 +370,10 @@ class DQNPlayer:
         while board.board[act]!=EMPTY:
             #print("Wrong Act "+str(board.board)+" with "+str(act))
             self.learn(self.last_board,act, -1, self.last_board)
-            x=np.array([board.board],dtype=np.float32).astype(np.float32)
-            pred=self.model(x)
+            x=board.board
+            pred=self.model.pred(x)
             #print(pred.data)
-            act=np.argmax(pred.data,axis=1)
+            act=np.argmax(pred)
             i+=1
             if i>10:
 #                print("Exceed Pos Find"+str(board.board)+" with "+str(act))
@@ -401,24 +408,22 @@ class DQNPlayer:
         if fs.winner is not None:
             maxQnew=0
         else:
-            x=np.array([fs.board],dtype=np.float32).astype(np.float32)
-            maxQnew=np.max(self.model(x).data[0])
+            x= fs.board
+            maxQnew=np.max(self.model.pred(x)[0])
+            
         update=r+self.gamma*maxQnew
-        #print(('Prev Board:{} ,ACT:{}, Next Board:{}, Get Reward {}, Update {}').format(s.board,a,fs.board,r,update))
-        #print(('PREV:{}').format(self.last_pred))
+
+#        print(self.last_pred)
         self.last_pred[a]=update
         
-        x=np.array([s.board],dtype=np.float32).astype(np.float32)
-        t=np.array([self.last_pred],dtype=np.float32).astype(np.float32)
-        self.model.zerograds()
-        loss=self.model(x,t,train=True)
-        loss.backward()
-        self.optimizer.update()
+        x=s.board
+        y=self.last_pred
+        self.model.learn(x,y)
         
 
 pQ=DQNPlayer(PLAYER_O,"QL1")
 p2=PlayerRandom(PLAYER_X)
-game=TTT_GameOrganizer(pQ,p2,500000,False,False,100)
+game=TTT_GameOrganizer(pQ,p2,20000,False,False,100)
 game.progress()
 
 # pQ=PlayerQL(PLAYER_O,"QL1")
@@ -435,7 +440,7 @@ game.progress()
 #     pQ = pickle.load(f)
 pQ.e=0
 p2=PlayerRandom(PLAYER_X)
-game=TTT_GameOrganizer(pQ,p2,2000,False,False,100)
+game=TTT_GameOrganizer(pQ,p2,1000,False,False,100)
 game.progress()
 
 
