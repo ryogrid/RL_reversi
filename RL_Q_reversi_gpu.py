@@ -298,37 +298,41 @@ import numpy as np
 class MLP():
 
     def __init__(self, n_in, n_units, n_out):
-        self.sess = tf.Session()
-        self.x = tf.placeholder("float", [None, n_in])
-        self.y_ = tf.placeholder("float", [None, n_out])
-
-        weights1 = tf.Variable(tf.truncated_normal([n_in, n_units], stddev=0.0001))
-        biases1 = tf.Variable(tf.ones([n_units]))
-
-        weights2 = tf.Variable(tf.truncated_normal([n_units, n_units], stddev=0.0001))
-        biases2 = tf.Variable(tf.ones([n_units]))
-
-        weights3 = tf.Variable(tf.truncated_normal([n_units, n_out], stddev=0.0001))
-        biases3 = tf.Variable(tf.ones([n_out]))
-
-        # This time we introduce a single hidden layer into our model...
-        hidden_layer_1 = tf.nn.relu(tf.matmul(self.x, weights1) + biases1)
-        hidden_layer_2 = tf.nn.relu(tf.matmul(hidden_layer_1, weights2) + biases2)
-        self.model = tf.nn.softmax(tf.matmul(hidden_layer_2, weights3) + biases3)
-
-        cost = -tf.reduce_sum(self.y_*tf.log(self.model))
-
-        self.training_step = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(cost)
-
-        init = tf.initialize_all_variables()
-        
-        self.sess.run(init)
+#        self.sess = tf.Session("/gpu:0")
+        with tf.device("/gpu:0"):
+            self.sess = tf.Session()
+            self.x = tf.placeholder("float", [None, n_in])
+            self.y_ = tf.placeholder("float", [None, n_out])
+            
+            weights1 = tf.Variable(tf.truncated_normal([n_in, n_units], stddev=0.0001))
+            biases1 = tf.Variable(tf.ones([n_units]))
+            
+            weights2 = tf.Variable(tf.truncated_normal([n_units, n_units], stddev=0.0001))
+            biases2 = tf.Variable(tf.ones([n_units]))
+            
+            weights3 = tf.Variable(tf.truncated_normal([n_units, n_out], stddev=0.0001))
+            biases3 = tf.Variable(tf.ones([n_out]))
+            
+            # This time we introduce a single hidden layer into our model...
+            hidden_layer_1 = tf.nn.relu(tf.matmul(self.x, weights1) + biases1)
+            hidden_layer_2 = tf.nn.relu(tf.matmul(hidden_layer_1, weights2) + biases2)
+            self.model = tf.nn.softmax(tf.matmul(hidden_layer_2, weights3) + biases3)
+            
+            cost = -tf.reduce_sum(self.y_*tf.log(self.model))
+            
+            self.training_step = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(cost)
+            
+            init = tf.initialize_all_variables()
+            
+            self.sess.run(init)
 
     def pred(self, x):
-        return self.sess.run(self.model,feed_dict = {self.x: [x]})
+        with tf.device("/gpu:0"):
+            return self.sess.run(self.model,feed_dict = {self.x: [x]})
 
     def learn(self, x, y):
-        self.sess.run(self.training_step, feed_dict={self.x: [x], self.y_: [y]})
+        with tf.device("/gpu:0"):
+            self.sess.run(self.training_step, feed_dict={self.x: [x], self.y_: [y]})
 
     
 
@@ -419,7 +423,7 @@ class DQNPlayer:
 
 pQ=DQNPlayer(PLAYER_O,"QL1")
 p2=PlayerRandom(PLAYER_X)
-game=TTT_GameOrganizer(pQ,p2,10000,False,False,100)
+game=TTT_GameOrganizer(pQ,p2,20000,False,False,100)
 game.progress()
 
 # pQ=PlayerQL(PLAYER_O,"QL1")
